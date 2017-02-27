@@ -10,6 +10,7 @@ from utils import *
 def plot_net(network,session):
   nbins=10
   try:
+    N=session.query(StationStats.station).filter(StationStats.network==network).count()
     fig=plt.figure(figsize=(8.5,11))
     fig.subplots_adjust(left=0.09, wspace=0.2,hspace=.33,right=.97,top=.92,bottom=.05)
     ax1=plt.subplot2grid((5,2),(0,0),colspan=2)
@@ -76,7 +77,7 @@ def plot_net(network,session):
     ax9.hist(v,bins=nbins)
     plt.title("NLNM dev 90-110 s (Avg %.2f dB)" % (np.average(v))) 
   
-    plt.suptitle("%s Network Summary" % (network))
+    plt.suptitle("%s Network Summary (%d stations)" % (network,N))
     plt.savefig("summary_%s.pdf" % (network))
   except:
     logging.info("No data for network %s" % (network))
