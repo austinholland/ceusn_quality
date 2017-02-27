@@ -1,0 +1,29 @@
+{
+  "region":{
+    "minlatitude":25.35,
+    "maxlatitude":49.0,
+    "minlongitude":-101.2,
+    "maxlongitude":-67.06
+  },
+  "starttime":"2016-01-01T00:00:00.0",
+  "endtime":"2017-01-01T00:00:00.0",
+  "inventoryfile":"ceusn_inventory.xml",
+  "dbfile":"ceusn_quality.db",
+  "datadir":"data",
+  "periods":[
+    {"label":"1","min":0.5,"max":1.0},
+    {"label":"p25","min":0.125,"max":0.25},
+    {"label":"8","min":4.0,"max":8.0},
+    {"label":"22","min":18.0,"max":22.0},
+    {"label":"110","min":90.0,"max":110.0}
+  ],
+  "source":{
+    "Q":600.0,
+    "alpha":6.1,
+    "depth":10.0,
+    "rho":2.7,
+    "stressdrop":5.0,
+    "snr_db":6.0,
+    "nsigma":1.645
+  }
+}
