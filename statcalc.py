@@ -10,7 +10,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 from utils import *
 import noise
-from sourcesprectra import *
+from sourcespectra import *
 
 Base = declarative_base()
 

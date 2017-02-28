@@ -24,12 +24,13 @@
     "rho":2.7,
     "stressdrop":5.0,
     "snr_db":6.0,
-    "nsigma":1.645
+    "nsigma":1.645,
+    "nstations":4
   },
   "mapdetect":[
     {"label":"Backbone","networks":["US","IU","IM","TA"]},
     {"label":"ANSS","networks":["US","IU","IM","TA","CO","ET","LD","NE","NM"]},
     {"label":"N4","networks":["US","IU","IM","TA","N4"]},
-    {"label":"N4","networks":["All"]}
+    {"label":"All","networks":["All"]}
   ]
 }
