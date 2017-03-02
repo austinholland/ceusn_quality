@@ -134,7 +134,7 @@ def noise2mw(f,db,Q=600,rho=2.7,vel=6.0,delta=100.,depth=5.,stressdrop=5.,phase=
     # Convert energy in decibels to an amplitude
     A=np.sqrt(np.power(10,(db)/10.)*f)
     db_new=10*np.log10((A**2)/f)
-    logging.debug("dB difference %f" % (db -np.mean(db_new)))
+    #logging.debug("dB difference %f" % (db -np.mean(db_new)))
     # Remove the attenuation by calculating the attenuation and then taking the inverse
     Ae=attenuation(f,Q,delta,depth,vel,phase=phase)
     A=A/Ae

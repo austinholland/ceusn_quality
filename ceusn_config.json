@@ -28,9 +28,11 @@
     "nstations":4
   },
   "mapdetect":[
+    {"label":"All","networks":["All"]},
     {"label":"Backbone","networks":["US","IU","IM","TA"]},
     {"label":"ANSS","networks":["US","IU","IM","TA","CO","ET","LD","NE","NM"]},
     {"label":"N4","networks":["US","IU","IM","TA","N4"]},
-    {"label":"All","networks":["All"]}
+    {"label":"N4ANSS","networks":["US","IU","IM","TA","CO","ET","LD","NE","NM","N4"]},    
+    {"label":"All-N4","networks":["All-N4"]}
   ]
 }
