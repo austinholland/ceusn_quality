@@ -12,11 +12,11 @@ from obspy.geodetics import gps2dist_azimuth
 from grid_detection import get_stations
 import numpy as np
 
-def calc_gain(session,netset,compare,conf,dd=0.2):
-  node=np.loadtxt("GIS/ANSS/ANSS_mdetect.csv",skiprows=1,delimiter=',')
+def calc_gain(session,netset,compare,conf,outfile,dd=0.2):
+  node=np.loadtxt(compare,skiprows=1,delimiter=',')
   stations=get_stations(netset,session)
-  outfh=open("GIS/N4/station_gain.csv",'w')
-  outfh.write("longitude,latitude,label,areagain,meangain,maxgain\n")
+  outfh=open(outfile,'w')
+  outfh.write("longitude,latitude,label,areagain,meangain,maxgain,num_nodes\n")
   for sta in stations:
     N=np.shape(node)[0]
     single=np.zeros(N)
@@ -37,15 +37,15 @@ def calc_gain(session,netset,compare,conf,dd=0.2):
       meangain=0.
       maxgain=0.
     else:
-      areagain=((n-2)/2)*(.2**2)
+      areagain=((n-2.)/2.)*(dd**2)
       meangain=np.mean(single[indexes])
       maxgain=np.max(single[indexes])
-    stationgain2csv(outfh,sta,areagain,meangain,maxgain)
+    stationgain2csv(outfh,sta,areagain,meangain,maxgain,n)
   outfh.close()
        
-def stationgain2csv(fh,sta,areagain,meangain,maxgain):    
-  fh.write("%.2f,%.2f,%s.%s,%.2f,%.2f,%.2f\n"% (sta.longitude,sta.latitude,sta.network,
-    sta.station,areagain,meangain,maxgain))
+def stationgain2csv(fh,sta,areagain,meangain,maxgain,n):    
+  fh.write("%.2f,%.2f,%s.%s,%.2f,%.2f,%.2f,%d\n"% (sta.longitude,sta.latitude,sta.network,
+    sta.station,areagain,meangain,maxgain,n))
 
 if __name__=="__main__":
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -65,6 +65,7 @@ if __name__=="__main__":
   config=load_config(sys.argv[1])
   Session=sessionmaker(bind=engine)
   session=Session()
-  comparefile="GIS/ANSS/ANSS_mdetect.csv"
+  comparefile="GIS/All-N4/All-N4_mdetect.csv"
   netset={"label":"N4","networks":['N4']}
-  calc_gain(session,netset,comparefile,config)
+  outfile="GIS/All-N4/station_gain.csv"
+  calc_gain(session,netset,comparefile,config,outfile)
