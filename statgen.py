@@ -9,6 +9,7 @@ from utils import *
 import noise
 from sourcespectra import *
 import pymodm
+import re
 
 # Connect to MongoDB and call the connection "my-app".
 pymodm.connect("mongodb://localhost:27017/ceusn_quality", alias="quality")
@@ -17,7 +18,7 @@ class StationStats(pymodm.MongoModel):
   label=pymodm.fields.CharField(primary_key=True)
   network = pymodm.fields.CharField()
   station = pymodm.fields.CharField()
-  location=pymodm.fields.PointField(verbose_name="Station Location"
+  location=pymodm.fields.PointField(verbose_name="Station Location")
   gapsperday = pymodm.fields.FloatField(verbose_name="Gaps per Day")
   peravailability = pymodm.fields.FloatField(verbose_name="Percent Availability")
   aggregate=pymodm.fields.FloatField(verbose_name="Aggregate Score")
@@ -41,18 +42,16 @@ class StationStats(pymodm.MongoModel):
     self.station=lv[1]
     self.network=lv[0]
     
-  def get_coordinates(self,session,inventory):
-    ch=session.query(ChannelStats).filter(ChannelStats.network==self.network).filter(ChannelStats.station==self.station).first()
-    if ch!=None:
+  def get_coordinates(self,db,inventory):   
+    for ch in db.ChannelStats.objects.raw({'network':{'$eq':self.network},'station':{'$eq':self.station}}):
       chan=ch.channel
       d=inventory.get_coordinates(chan)
-      self.latitude=d['latitude']
-      self.longitude=d['longitude']
+      self.location=([d['longitude'],d['latitude']])
       return True
     else:
       return False    
 
-  def populate_metrics(self,session,conf):
+  def populate_metrics(self,db,conf):
     gapsperday=[]
     peravailability=[]
     nlnm1=[]
@@ -63,17 +62,18 @@ class StationStats(pymodm.MongoModel):
     meanp25=[]
     stdp25=[]
     aggregate=[]
-    for ch in session.query(ChannelStats).filter(ChannelStats.nlnm1!=None).filter(ChannelStats.network==self.network).filter(ChannelStats.station==self.station):
-      gapsperday.append(ch.gapsperday)
-      peravailability.append(ch.peravailability)
-      nlnm1.append(ch.nlnm1)
-      nlnmp25.append(ch.nlnmp25)
-      nlnm8.append(ch.nlnm8)
-      nlnm22.append(ch.nlnm22)
-      nlnm110.append(ch.nlnm110)
-      meanp25.append(ch.meanp25)
-      stdp25.append(ch.stdp25)
-      aggregate.append(ch.aggregate)
+    for ch in db.ChannelStats.objects.raw({'network':self.network,'station':self.station,'nlnm1':{$exists:True,'$ne':""}}):
+      if not (ch.network=='IU' and  (re.seach('\.HH.',ch.channel)):
+        gapsperday.append(ch.gapsperday)
+        peravailability.append(ch.peravailability)
+        nlnm1.append(ch.nlnm1)
+        nlnmp25.append(ch.nlnmp25)
+        nlnm8.append(ch.nlnm8)
+        nlnm22.append(ch.nlnm22)
+        nlnm110.append(ch.nlnm110)
+        meanp25.append(ch.meanp25)
+        stdp25.append(ch.stdp25)
+        aggregate.append(ch.aggregate)
     self.gapsperday=np.mean(gapsperday)
     self.peravailability=np.mean(peravailability)
     self.nlnm1=np.mean(nlnm1)
@@ -156,28 +156,23 @@ if __name__=="__main__":
   if len(sys.argv)>2:
     cmd=sys.argv[2]
   else:
-    cmd="base"
+    cmd="all"
   config=load_config(sys.argv[1])
   # Create our database or open it
-  if not os.path.exists(config['dbfile']):
-    engine=create_engine("sqlite:///%s" % (config['dbfile']),echo=False)
-    Base.metadata.create_all(engine)
-  else:
-    engine=create_engine("sqlite:///%s" % (config['dbfile']),echo=False)
-  Session=sessionmaker(bind=engine)
-  session=Session()
+  session=pymodm.connect(config['dbfile'], alias="quality")
+
   inv=get_inventory(config)
-  if cmd=="base":
+  if cmd=="base" or cmd=='all':
     channels=channel_list(inv)
     for chan in channels:
       logging.debug("Processing channel %s" % (chan))
       chstats=ChannelStats(chan)
       chstats.get_sumstats_iris(config)
       chstats.get_noisestats(config)
-      session.add(chstats)
-      session.commit()
-  if cmd=="aggregate":
-    for ch in session.query(ChannelStats).filter(ChannelStats.nlnm1!=None):
+      chstats.save()
+      
+  if cmd=="aggregate" or cmd=='all':
+    for ch in db.ChannelStats.objects.raw({'nlnm1':{$exists:True,'$ne':""}}):
       scores=[]
       scores.append(calc_grade([ch.nlnm1],16.073476,10.5388043))
       scores.append(calc_grade([ch.nlnmp25],16.355719,17.022342))
@@ -187,15 +182,14 @@ if __name__=="__main__":
       scores.append(calc_grade([ch.gapsperday],.00274,.992))
       scores.append(ch.peravailability)
       ch.aggregate=np.average(scores)
-      session.add(ch)
-      session.commit()
-  if cmd=="station":
+      ch.save()
+      
+  if cmd=="station" or cmd=='all':
     stations=station_list(inv)
-    for station in stations:
-      network,station=station.split('.')
-      sta=StationStats(network=network,station=station)
+    for station in stations:      
+      sta=StationStats(station)
       if sta.get_coordinates(session,inv):
         sta.populate_metrics(session,config)
       if sta.aggregate!=None:
-        session.add(sta)
-        session.commit()
+        sta.save()
+        
