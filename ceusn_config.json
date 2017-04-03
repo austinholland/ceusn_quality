@@ -25,11 +25,13 @@
     "stressdrop":5.0,
     "snr_db":6.0,
     "nsigma":1.645,
-    "nstations":4
+    "nstations":7
   },
   "mapdetect":[
+
     {"label":"All","networks":["All"]},
     {"label":"Backbone","networks":["US","IU","IM","TA"]},
+    {"label":"Base","networks":["US","IU","IM","TA","N4"]},
     {"label":"ANSS","networks":["US","IU","IM","TA","CO","ET","LD","NE","NM"]},
     {"label":"N4","networks":["US","IU","IM","TA","N4"]},
     {"label":"N4ANSS","networks":["US","IU","IM","TA","CO","ET","LD","NE","NM","N4"]},    

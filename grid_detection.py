@@ -18,7 +18,29 @@ def calc_detection(netset,conf,session,dd=0.2):
       for sta in stalist:
         d,azm,baz=gps2dist_azimuth(sta.latitude,sta.longitude,lat,lon)
         threshold_db = sta.meanp25+conf['source']['nsigma']*sta.stdp25+conf['source']['snr_db']
-        f=np.array([4,6,8])
+        f=np.array([1,2])
+        mw=noise2mw(f,threshold_db,
+          Q=conf['source']['Q'],rho=conf['source']['rho'],vel=conf['source']['alpha'],
+          delta=d/1000.,depth=conf['source']['depth'],stressdrop=conf['source']['stressdrop'],
+          phase='P')
+        dv.append(mw)
+      dv=np.sort(dv)
+      fh.write("%.2f,%.2f,%.2f\n" % (lon,lat,dv[conf['source']['nstations']-1]))
+  fh.close()
+
+def calc_detection_1s(netset,conf,session,dd=0.2):
+  """ Calculate the magnitude of detection using the 1 second band at a delta degrees of dd"""
+  stalist=get_stations(netset,session)
+  stalist2csv(stalist,netset)
+  fh=open("GIS/%s/%s_mdetect_1s.csv" % (netset['label'],netset['label']),'w')
+  fh.write("longitude,latitude,Mdetect\n")
+  for lat in np.arange(conf['region']['minlatitude'],conf['region']['maxlatitude'],dd):
+    for lon in np.arange(conf['region']['minlongitude'],conf['region']['maxlongitude'],dd):
+      dv=[] # Store detection values to all stations
+      for sta in stalist:
+        d,azm,baz=gps2dist_azimuth(sta.latitude,sta.longitude,lat,lon)
+        threshold_db = sta.mean1+conf['source']['nsigma']*sta.std1+conf['source']['snr_db']
+        f=np.array([1,2])
         mw=noise2mw(f,threshold_db,
           Q=conf['source']['Q'],rho=conf['source']['rho'],vel=conf['source']['alpha'],
           delta=d/1000.,depth=conf['source']['depth'],stressdrop=conf['source']['stressdrop'],
@@ -74,4 +96,4 @@ if __name__=="__main__":
   Session=sessionmaker(bind=engine)
   session=Session()
   for netset in config['mapdetect']:
-    calc_detection(netset,config,session)
+    calc_detection_1s(netset,config,session)

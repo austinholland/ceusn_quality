@@ -31,6 +31,8 @@ class StationStats(Base):
   nlnm110=Column(Float)
   meanp25=Column(Float)
   stdp25=Column(Float)
+  mean1=Column(Float)
+  std1=Column(Float)
   mc100km=Column(Float)
   aggregate=Column(Float)
   
@@ -60,6 +62,8 @@ class StationStats(Base):
     nlnm110=[]
     meanp25=[]
     stdp25=[]
+    mean1=[]
+    std1=[]
     aggregate=[]
     for ch in session.query(ChannelStats).filter(ChannelStats.nlnm1!=None).filter(ChannelStats.network==self.network).filter(ChannelStats.station==self.station):
       gapsperday.append(ch.gapsperday)
@@ -71,6 +75,8 @@ class StationStats(Base):
       nlnm110.append(ch.nlnm110)
       meanp25.append(ch.meanp25)
       stdp25.append(ch.stdp25)
+      mean1.append(ch.mean1)
+      std1.append(ch.std1)
       aggregate.append(ch.aggregate)
     self.gapsperday=np.mean(gapsperday)
     self.peravailability=np.mean(peravailability)
@@ -81,6 +87,8 @@ class StationStats(Base):
     self.nlnm110=np.mean(nlnm110)
     self.meanp25=np.mean(meanp25)
     self.stdp25=np.mean(stdp25)
+    self.mean1=np.mean(mean1)
+    self.std1=np.mean(std1)
     self.aggregate=np.mean(aggregate)
     threshold_db = self.meanp25+conf['source']['nsigma']*self.stdp25+conf['source']['snr_db']
     f=np.array([4,6,8])
