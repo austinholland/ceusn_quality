@@ -22,9 +22,10 @@ import shapely.geometry
 import logging
 from utils import *
  
- 
+        
 def get_eventsUS(db,conf,starttime=None,endtime=None):
-  """ Get all events in the US within our study region"""
+  """ Get all events in the US within our study region, it turns out it is probably easier 
+  to save the events in the database and then work through them"""
   fdsnclient=fdsn.Client('USGS')
   cat=fdsnclient.get_events(starttime=starttime,endtime=endtime,minmagnitude=2.5,maxmagnitude=4.5,
     orderby='time',minlatitude=conf['region']['minlatitude'],
@@ -36,6 +37,7 @@ def get_eventsUS(db,conf,starttime=None,endtime=None):
   res=borders.find_one( {},{"features.geometry.coordinates":1} )
   coordinates=res['features'][0]['geometry']['coordinates']
   # Check to see if 
+  eventsCEUS=db.eventCEUS
   polylist=[]
   for p in coordinates:
     polylist.append(shapely.geometry.Polygon(p[0]))
@@ -43,25 +45,11 @@ def get_eventsUS(db,conf,starttime=None,endtime=None):
   for ev in cat:
     p=shapely.geometry.Point([ev.origins[0]['longitude'],ev.origins[0]['latitude']])
     if poly.contains(p):
-      catUS.append(ev)
-  logging.info("%d events where inside the US" % (catUS.count()))
-  return catUS
+      ev_id=events.insert_one(catalog2mongodict(ev))
+  logging.info("%d events where inside the US" % (eventsCEUS.count()))
+
  
-def process_catalog(db,cat,mdist=1.0):
-  events=db.events
-  for catev in cat:
-    if events.count()==0:
-      ev_id=events.insert_one(catalog2mongodict(catev))
-    else:
-      add_ev2db=True
-      for ev in events.find():
-        if eventdistance(ev['latitude'],ev['longitude'],ev['magnitude'],catev.origins[0]['latitude'],catev.origins[0]['longitude'],catev.magnitudes[0]['mag'])<mdist:
-          add_ev2db=False
-      if add_ev2db:
-        ev_id=events.insert_one(catalog2mongodict(catev))
-  logging.debug("There are %d events to be evaluated in the database" % (events.count()))
-      
-    
+
 def catalog2mongodict(catev):
   """ Convert an Obspy event to a dictionary for MongoDB
   Right now we are not concerned with getting the best origin just an origin since obspy
@@ -71,7 +59,7 @@ def catalog2mongodict(catev):
         'latitude':catev.origins[0]['latitude'],
         'longitude':catev.origins[0]['longitude'],
         'depth':catev.origins[0]['depth']/1000.,
-        'description':catev.event_descriptions,
+        'description':catev.event_descriptions[0]['text'],
         'magnitude':catev.magnitudes[0]['mag'],
         'magnitude_type':catev.magnitudes[0]['magnitude_type'],
         'geometry': [ catev.origins[0]['longitude'], catev.origins[0]['latitude'] ]
@@ -79,10 +67,6 @@ def catalog2mongodict(catev):
   return doc
     
  
-def eventdistance(lat1,lon1,m1,lat2,lon2,m2):
-   r=geodetics.locations2degrees(lat1,lon1,lat2,lon2)
-   dm=m1-m2
-   return np.sqrt(r**2+dm**2)
 
 if __name__=="__main__":
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
@@ -96,6 +80,5 @@ if __name__=="__main__":
   dbcon=MongoClient('mongodb://localhost:27017')
   db=dbcon.ceusn_quality
   #Get all events that meet our criteria
-  cat=get_eventsUS(db,config,starttime=UTCDateTime('2015-01-01T00:00:00.0'),endtime=UTCDateTime('2017-04-01T00:00:00.0'))
+  get_eventsUS(db,config,starttime=UTCDateTime('2015-01-01T00:00:00.0'),endtime=UTCDateTime('2017-04-05T00:00:00.0'))
   # Add events to the database that meet our distance requirements
-  process_catalog(db,cat,mdist=1.0)
