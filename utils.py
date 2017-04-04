@@ -61,7 +61,7 @@ def pdfpath(channel,conf):
     net=cvals[0]
     return "%s/%s/%s_pdf.txt" % (conf['datadir'],net,channel)
     
-def get_inventory(conf):
+def get_inventory(conf,level='channel',select="[BH]H?"):
   """ Get or load the inventory depending on whether it exists or not.  Be sure to delete
   the inventory if you change relevant parameters in the config file such as region or 
   channel matching."""
@@ -74,7 +74,7 @@ def get_inventory(conf):
       maxlatitude=conf['region']['maxlatitude'],
       minlongitude=conf['region']['minlongitude'],
       maxlongitude=conf['region']['maxlongitude'],
-      level='channel',
+      level=level,
       starttime=conf['starttime'],
       endtime=conf['endtime'])
     # Select the channels from the temporary inventory
