@@ -9,11 +9,15 @@ We can then apply a cutoff for distance.  For now I will try a distance greater 
 The idea is to get a large sampling of event magnitudes and different locations.  I am 
 afraid this will still produce a lot of events in Oklahoma.
 
+db.events.count({"description":/.*Oklahoma.*/})
+
 Data is stored in a local mongo database in order to allow for changes in data structure 
 as this develops.
+
 """
 
-from pymongo import MongoClient
+import pymongo
+from bson.objectid import ObjectId
 from obspy.core import *
 import obspy.clients.fdsn as fdsn
 import obspy.geodetics as geodetics
@@ -22,14 +26,13 @@ import shapely.geometry
 import logging
 from utils import *
  
-class Map(dict):
+class Event(dict):
   """
-  Be able
-  Example:
-  m = Map({'first_name': 'Eduardo'}, last_name='Pool', age=24, sports=['Soccer'])
+  Map a dictionary to be able to use keys like attributes and then you can even add 
+  functionality.  There could be some gotchas here I haven't thought about.  
   """
   def __init__(self, *args, **kwargs):
-      super(Map, self).__init__(*args, **kwargs)
+      super(Event, self).__init__(*args, **kwargs)
       for arg in args:
           if isinstance(arg, dict):
               for k, v in arg.items():
@@ -46,33 +49,47 @@ class Map(dict):
       self.__setitem__(key, value)
 
   def __setitem__(self, key, value):
-      super(Map, self).__setitem__(key, value)
+      super(Event, self).__setitem__(key, value)
       self.__dict__.update({key: value})
 
   def __delattr__(self, item):
       self.__delitem__(item)
 
   def __delitem__(self, key):
-      super(Map, self).__delitem__(key)
+      super(Event, self).__delitem__(key)
       del self.__dict__[key]
-        
-
+      
+def magdistance(event,lat,lon,mag):
+  r=geodetics.locations2degrees(event.latitude,event.longitude,lat,lon)
+  dm=event.magnitude-mag    
+  return np.sqrt(r**2+dm**2)
  
 def process_catalog(db,mdist=1.0):
   """ Calculate the minimum magnitude_distance metric for each event """
   events=db.events
   eventsCEUS=db.eventCEUS
-#   #Copy one event into the events collection
-#   d=eventsCUS
-#   for ev in eventsCEUS.find({}):
-#     ev=Map(ev)
-#     mdist_list=[]
-#     for evs in eventsCEUS.find({'_id':{'$ne':ev._id}})
-#       evs=Map(evs)
-#       mdist_list.append(eventdistance(ev.latitude,ev.longitude,ev.magnitude,evs.latitude,evs.longitude,evs.magnitude))
-#     ev.magnitude_distance=np.min(mdist_list)
-#     events.update(ev)
-#     
+  #Copy one event into the events collection
+  ev=eventsCEUS.find_one({})
+  id=ev.pop('_id')
+  coord=ev['geometry']
+  ev.update({'geometry':{'type':'Point','coordinates':coord}})
+  print(id)
+  newid=events.insert_one(ev)
+  for ev in eventsCEUS.find({'_id':{'$ne':ObjectId(id)}}).sort("magnitude",pymongo.DESCENDING):
+    ev=Event(ev)
+    mdist_list=[]
+    for evs in events.find({}):     
+      mdist_list.append(magdistance(ev,evs['latitude'],evs['longitude'],evs['magnitude']))
+    if np.min(mdist_list)>=mdist:
+      ev.mdist=np.min(mdist_list)
+      coord=ev['geometry']
+      ev.update({'geometry':{'type':'Point','coordinates':coord}})
+
+      ev.pop('_id')
+      #print(ev)
+      events.insert_one(ev)
+    
+    
 
     
  
@@ -90,9 +107,9 @@ if __name__=="__main__":
     cmd="all"
   config=load_config(sys.argv[1])
   #
-  dbcon=MongoClient('mongodb://localhost:27017')
+  dbcon=pymongo.MongoClient('mongodb://localhost:27017')
   db=dbcon.ceusn_quality
   #Get all events that meet our criteria
-  get_eventsUS(db,config,starttime=UTCDateTime('2015-01-01T00:00:00.0'),endtime=UTCDateTime('2017-04-05T00:00:00.0'))
+  
   # Add events to the database that meet our distance requirements
-  #process_catalog(db,cat,mdist=1.0)
+  process_catalog(db,mdist=0.8)

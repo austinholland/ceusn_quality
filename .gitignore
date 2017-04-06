@@ -4,3 +4,5 @@
 summary*.pdf
 *.zip
 *GIS*
+RESP.*
+*.err_log*

@@ -34,6 +34,7 @@ def get_eventsUS(db,conf,starttime=None,endtime=None):
   logging.info("Retrieved %d events using fdsn client" % (cat.count()))
   catUS=event.catalog.Catalog(comments='withinUS')  
   borders=db.USborder
+  eventsCEUS=db.eventsCEUS
   res=borders.find_one( {},{"features.geometry.coordinates":1} )
   coordinates=res['features'][0]['geometry']['coordinates']
   # Check to see if 
@@ -45,7 +46,7 @@ def get_eventsUS(db,conf,starttime=None,endtime=None):
   for ev in cat:
     p=shapely.geometry.Point([ev.origins[0]['longitude'],ev.origins[0]['latitude']])
     if poly.contains(p):
-      ev_id=events.insert_one(catalog2mongodict(ev))
+      ev_id=eventsCEUS.insert_one(catalog2mongodict(ev))
   logging.info("%d events where inside the US" % (eventsCEUS.count()))
 
  
