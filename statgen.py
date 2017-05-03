@@ -33,11 +33,11 @@ class StationStats(pymodm.MongoModel):
   std1=pymodm.fields.FloatField(verbose_name="STD Noise .5-1 s")
   stdp25=pymodm.fields.FloatField(verbose_name="STD Noise .125-.25 s")
 
-   class Meta:
-    write_concern = WriteConcern(j=True)
-    connection_alias = 'quality'
+#    class Meta:
+#     write_concern = WriteConcern(j=True)
+#     connection_alias = 'quality'
     
-  def __init__(self,label)
+  def __init__(self,label):
     lv=label.split('.')
     self.station=lv[1]
     self.network=lv[0]
@@ -62,8 +62,8 @@ class StationStats(pymodm.MongoModel):
     meanp25=[]
     stdp25=[]
     aggregate=[]
-    for ch in db.ChannelStats.objects.raw({'network':self.network,'station':self.station,'nlnm1':{$exists:True,'$ne':""}}):
-      if not (ch.network=='IU' and  (re.seach('\.HH.',ch.channel)):
+    for ch in db.ChannelStats.objects.raw({'network':self.network,'station':self.station,'nlnm1':{'$exists':True,'$ne':0.}}):
+      if not (ch.network=='IU' and  (re.seach('\.HH.',ch.channel))):
         gapsperday.append(ch.gapsperday)
         peravailability.append(ch.peravailability)
         nlnm1.append(ch.nlnm1)
@@ -122,12 +122,13 @@ class ChannelStats(pymodm.MongoModel):
   skew110=pymodm.fields.FloatField(verbose_name="Skew Noise 90-110 s")
   aggregate=pymodm.fields.FloatField(verbose_name="Aggregate Score")
 
-  class Meta:
-    write_concern = WriteConcern(j=True)
-    connection_alias = 'quality'
+#   class Meta:
+#     write_concern = WriteConcern(j=True)
+#     connection_alias = 'quality'
     
-  def __init__(self,channel)
+  def __init__(self,channel):
     cvals=channel.split('.')
+    self.channel=channel
     self.network=cvals[0]
     self.station=cvals[1]    
     
@@ -159,7 +160,7 @@ if __name__=="__main__":
     cmd="all"
   config=load_config(sys.argv[1])
   # Create our database or open it
-  session=pymodm.connect(config['dbfile'], alias="quality")
+  session=pymodm.connect("mongodb://localhost:27017/ceusn_quality", alias="quality")
 
   inv=get_inventory(config)
   if cmd=="base" or cmd=='all':
@@ -172,7 +173,7 @@ if __name__=="__main__":
       chstats.save()
       
   if cmd=="aggregate" or cmd=='all':
-    for ch in db.ChannelStats.objects.raw({'nlnm1':{$exists:True,'$ne':""}}):
+    for ch in db.ChannelStats.objects.raw({'nlnm1':{'$ne':0.}}):
       scores=[]
       scores.append(calc_grade([ch.nlnm1],16.073476,10.5388043))
       scores.append(calc_grade([ch.nlnmp25],16.355719,17.022342))

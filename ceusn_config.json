@@ -28,7 +28,7 @@
     "nstations":7
   },
   "mapdetect":[
-    {"label":"USGS","networks":["US","IU","CO","ET","LD","NE","NM"]}
+    {"label":"Backbone","networks":["US","IU"]}
 
   ]
 }

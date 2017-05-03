@@ -7,6 +7,7 @@ from obspy.core import *
 import obspy.clients.fdsn as fdsn
 import obspy.clients.iris as iris
 import obspy.geodetics as geodetics
+import obspy.taup as taup
 import numpy as np
 import shapely.geometry
 import logging
@@ -14,6 +15,16 @@ from utils import *
 
 def respfilename(seedid):
   return "resp/RESP.%s" % (ch)
+  
+def get_travel_time(dist_km,phase='P',velmod='AK135')
+  """ use taup to get the travel time for the selected phase so we know which data
+  to get """
+  
+
+def get_trace_data(db,ev,inv):
+  """ Get trace data for a channel and save it in the event document in mongodb.
+  """   
+  scnl=inv['_id']
   
 if __name__=="__main__":
   logging.basicConfig(stream=sys.stdout, level=logging.DEBUG)
